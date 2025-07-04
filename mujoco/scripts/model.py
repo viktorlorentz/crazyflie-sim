@@ -407,8 +407,6 @@ class LeeController():
 class CFMujoco():
     def __init__(self, xml_path, name, sim_args):
         """Initialize the MuJoCo simulation."""
-        if not glfw.init():
-            raise RuntimeError("GLFW initialization failed!")
         self.model = mj.MjModel.from_xml_path(xml_path)
         self.data = mj.MjData(self.model)
         self.tendons = sim_args["tendons"]
@@ -422,11 +420,61 @@ class CFMujoco():
         self.actions_ff = True
         self.ghost_mode = False
         # Load trajectory and model parameters
+        self.visualize    = sim_args["visualize"]
         self.model_params = sim_args["model_params"]
-        self.visualize = sim_args["visualize"]
-        self.traj_path = sim_args["traj_path"]
-        self.out_path = sim_args["out_path"]
+        self.traj_path    = sim_args["traj_path"]
+        self.out_path     = sim_args["out_path"]
+        # Determine number of robots
+        self.num_robots = self.model_params.get("num_robots", 1)
         self.controller_list = []
+
+        if self.visualize:
+            if not glfw.init():
+                raise RuntimeError("GLFW initialization failed!")
+            self.window = glfw.create_window(2400, 1200, name, None, None)
+            if not self.window:
+                glfw.terminate()
+                raise RuntimeError("GLFW window creation failed!")
+            glfw.make_context_current(self.window)
+            glfw.swap_interval(1)
+
+            mj.mjv_defaultCamera(self.cam)
+            mj.mjv_defaultOption(self.opt)
+            self.scene   = mj.MjvScene(self.model, maxgeom=10000)
+            self.context = mj.MjrContext(self.model, mj.mjtFontScale.mjFONTSCALE_150.value)
+
+            # --- setting up a ghost model to show dynoplan/dynobench trajectory -------------------------------
+            self.ghost_model  = mj.MjModel.from_xml_path(xml_path)   # identical XML
+            self.ghost_data   = mj.MjData(self.ghost_model)
+
+            # 30 %-opaque green for every geom in the ghost
+            self.ghost_model.geom_rgba[:] = (1.0, 0.0, 0.0, 0.5) 
+
+            self.ghost_scene = mj.MjvScene(self.ghost_model, maxgeom=10000)
+            self.ghost_opt   = mj.MjvOption() 
+            self.ghost_opt.geomgroup[:] = 0     # hide everything
+            self.ghost_opt.geomgroup[1] = 1     # show only group-1 geoms (the CFs)
+            self.ghost_opt.geomgroup[2] = 1     # show only group-1 geoms (the CFs)
+            self.ghost_opt.geomgroup[3] = 1     # show only group-1 geoms (the CFs)
+            self.ghost_opt.geomgroup[5] = 1     # show only group-1 geoms (the CFs)
+
+            self.ghost_context = mj.MjrContext(self.ghost_model, mj.mjtFontScale.mjFONTSCALE_150.value)                      
+            # -------------------------------- default options ------------------------------------#
+
+            # Install input callbacks
+            glfw.set_key_callback(self.window, self.keyboard)
+            glfw.set_cursor_pos_callback(self.window, self.mouse_move)
+            glfw.set_mouse_button_callback(self.window, self.mouse_button)
+            glfw.set_scroll_callback(self.window, self.scroll)
+
+            self.button_left = False
+            self.button_right = False
+            self.last_x, self.last_y = 0, 0
+            self.ref_markers_created = False
+        else:
+            # headless: no window/context
+            self.window = None
+
         # log states and actions and time
         self.log_time   = []
         self.log_states = []
@@ -481,61 +529,6 @@ class CFMujoco():
         else:
             print("Invalid trajectory file format")
         
-        if "num_robots" in self.model_params:
-            self.num_robots = self.model_params["num_robots"]
-        else:    
-            self.num_robots = 1
-        # Create Window
-        if not glfw.init():
-            raise RuntimeError("GLFW initialization failed!")
-
-        # ↓ ADD these; nothing gets deleted ↓
-        if not sim_args["visualize"]:          # or: if not self.visualize
-            glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-        self.window = glfw.create_window(2400, 1200, name, None, None)
-        if not self.window:
-            glfw.terminate()
-            raise RuntimeError("GLFW window creation failed!")
-
-        glfw.make_context_current(self.window)
-        glfw.swap_interval(1)
-        # glfw.show_window(self.window)
-
-        # Initialize visualization
-        mj.mjv_defaultCamera(self.cam)
-        mj.mjv_defaultOption(self.opt)
-        self.scene = mj.MjvScene(self.model, maxgeom=10000)
-        self.context = mj.MjrContext(self.model, mj.mjtFontScale.mjFONTSCALE_150.value)
-
-        # --- setting up a ghost model to show dynoplan/dynobench trajectory -------------------------------
-        self.ghost_model  = mj.MjModel.from_xml_path(xml_path)   # identical XML
-        self.ghost_data   = mj.MjData(self.ghost_model)
-
-        # 30 %-opaque green for every geom in the ghost
-        self.ghost_model.geom_rgba[:] = (1.0, 0.0, 0.0, 0.5) 
-
-        self.ghost_scene = mj.MjvScene(self.ghost_model, maxgeom=10000)
-        self.ghost_opt   = mj.MjvOption() 
-        self.ghost_opt.geomgroup[:] = 0     # hide everything
-        self.ghost_opt.geomgroup[1] = 1     # show only group-1 geoms (the CFs)
-        self.ghost_opt.geomgroup[2] = 1     # show only group-1 geoms (the CFs)
-        self.ghost_opt.geomgroup[3] = 1     # show only group-1 geoms (the CFs)
-        self.ghost_opt.geomgroup[5] = 1     # show only group-1 geoms (the CFs)
-
-        self.ghost_context = mj.MjrContext(self.ghost_model, mj.mjtFontScale.mjFONTSCALE_150.value)                      
-        # -------------------------------- default options ------------------------------------#
-
-        # Install input callbacks
-        glfw.set_key_callback(self.window, self.keyboard)
-        glfw.set_cursor_pos_callback(self.window, self.mouse_move)
-        glfw.set_mouse_button_callback(self.window, self.mouse_button)
-        glfw.set_scroll_callback(self.window, self.scroll)
-
-        # Mouse tracking
-        self.button_left = False
-        self.button_right = False
-        self.last_x, self.last_y = 0, 0
-        self.ref_markers_created = False     # <- NEW
         if self.payload:
             if self.plan_type == "payload_target_pos":
                 self.model_params["m_payload"] = self.traj_data["m_payload"]            
@@ -559,7 +552,7 @@ class CFMujoco():
 
     def dynoplan_to_mujoco_states(self, dynoplan_st=None, tendons=False):
         """Conver the reference states from dynoplan to mujoco."""
-        # reference states in dynoplan are in the form of [p0, v0, a0, qc1, wc1, qc2, wc2, ..., qcn, wcn, quat1, w1, quat2, w2, ..., quatn, wn], where n is the number of robots.
+        # reference states in dynoplan are in the form of [p0, v0, a0, qc1, wc1, qc2, wc2, ..., qcn, wcn], where n is the number of robots.
         # note that quat in dynoplan is in the form of [x, y, z, w], while in mujoco it is in the form of [w, x, y, z]
         # p0: payload position
         # v0: payload velocity
@@ -677,8 +670,42 @@ class CFMujoco():
         mj.mjv_moveCamera(self.model, mj.mjtMouse.mjMOUSE_ZOOM, 0, yoffset / 10, self.scene, self.cam)
 
     def simulate(self):
-        """Run the simulation loop with real-time updates."""
+        """Run the simulation loop, headless or interactive."""
+        # ---- HEADLESS MODE ----
+        if not self.visualize:
+            self.setInitState()
+            print(f"Headless simulation for {len(self.ts)*self.model.opt.timestep:.2f} sec, logging to JSON.")
+            for k, t in enumerate(self.ts):
+                self.log_time.append(t)
+                if self.payload:
+                    for id in range(self.num_robots):
+                        self.controller_list[id].team_ids.remove(id)
+                        self.controller_list[id].team_ids.insert(0, id) 
+                        if self.actions_ff:
+                            self.controller_list[id].updateSetpoint(self.traj[k], self.data.qpos, self.data.qvel, actions=self.planned_actions[k])
+                        else: 
+                            self.controller_list[id].updateSetpoint(self.traj[k], self.data.qpos, self.data.qvel, actions=None)
+                        self.controller_list[id].updateState(self.data.qpos, self.data.qvel, id, tendons=self.tendons)
+                        self.controller_list[id].updateNeighbors(self.data.qpos, self.data.qvel, tendons=self.tendons)
+                        force = self.controller_list[id].getControl(id=id, tick=k)
+                        self.data.ctrl[4*id:4*id+4] = force
+                else:
+                    force = self.controller.getControl(id=0)
+                    self.data.ctrl[0:4] = force
 
+                mj.mj_step(self.model, self.data)
+                self.log_states.append(np.concatenate((self.data.qpos, self.data.qvel)).tolist())
+                self.log_actions.append(self.data.ctrl.tolist())
+
+            if self.out_path:
+                log_traj_data = load_json(self.traj_path)
+                log_traj_data["states"]  = self.log_states
+                log_traj_data["actions"] = self.log_actions
+                log_traj_data["time"]    = self.log_time
+                save_json(self.out_path, log_traj_data)
+            return
+
+        # ---- INTERACTIVE MODE (unchanged rendering loop) ----
         while not glfw.window_should_close(self.window):
             self.cam.lookat[:] = [self.data.qpos[0]-0.5, self.data.qpos[1], self.data.qpos[2] + 0.5]
             self.cam.azimuth = 0

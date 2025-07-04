@@ -38,7 +38,7 @@ python3 model.py --traj_path ../../data/2_robots_payload.yaml --models_path ../m
 
 - To run the simulation and track a goal pose only for the payload and log the results to compare them: 
  ```sh
- python3 log_states.py
+ python3 log_data.py 
  ```
  Inside you will find the commands necessary to check each run by itself.
 ### Notes
