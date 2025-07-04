@@ -1,0 +1,29 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "Crazyflie-SIM Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+
+  // 1) Sync & init all submodules over HTTPS
+  "initializeCommand": "git submodule sync --recursive && git submodule update --init --recursive",
+
+  // 2) Build only the Python bindings (skip full firmware compile)
+  "postCreateCommand": "cd deps/crazyflie-firmware && make cf2_defconfig && make bindings_python",
+
+  // 3) Always prepend firmware bindings to PYTHONPATH for every shell / task
+  "containerEnv": {
+    "PYTHONPATH": "${containerWorkspaceFolder}/deps/crazyflie-firmware:${PYTHONPATH}"
+  },
+
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+
+  "extensions": [
+    "ms-python.python",
+    "ms-vscode.cpptools"
+  ]
+}
