@@ -17,8 +17,8 @@ runs = [
         "traj_path"  : "../../data/run_data.json",
         "models_path": "../models/dynobench/2payload.yaml",
         "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
-        "out_path"   : "../../data/output/run_data1.json",
-    },
+        "out_path"   : f"../../data/output/run_data{i}.json",
+    }
 
     # # Add more dicts ↓ (copy-paste and change the paths)
     # {
@@ -39,7 +39,7 @@ runs = [
     #     "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
     #     "out_path"   : "../../data/output/run_data4.json",
     # },
-]
+for i in range(10)]
 
 # ---------------------------------------------------------------------
 # 2)  One helper that builds *exactly* the CLI you gave

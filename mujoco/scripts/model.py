@@ -753,9 +753,9 @@ class CFMujoco():
                 log_traj_data["actions"] = self.log_actions
                 log_traj_data["time"]    = self.log_time
                 log_traj_data["payload_pos"] = self.log_payload_pos
-                log_traj_data["payload_vel"] = self.log_payload_vel
+                log_traj_data["payload_linvel"] = self.log_payload_vel
                 log_traj_data["quad_pos"] = self.log_quad_pos
-                log_traj_data["quad_vel"] = self.log_quad_vel
+                log_traj_data["quad_linvel"] = self.log_quad_vel
                 log_traj_data["quad_rot"] = self.log_quad_rot
 
                 save_json(self.out_path, log_traj_data)
