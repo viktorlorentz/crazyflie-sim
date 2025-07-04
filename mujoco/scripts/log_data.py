@@ -20,25 +20,25 @@ runs = [
         "out_path"   : "../../data/output/run_data1.json",
     },
 
-    # Add more dicts ↓ (copy-paste and change the paths)
-    {
-        "traj_path"  : "../../data/run_data.json",
-        "models_path": "../models/dynobench/2payload.yaml",
-        "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
-        "out_path"   : "../../data/output/run_data2.json",
-    },
-    {
-        "traj_path"  : "../../data/run_data.json",
-        "models_path": "../models/dynobench/2payload.yaml",
-        "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
-        "out_path"   : "../../data/output/run_data3.json",
-    },
-        {
-        "traj_path"  : "../../data/run_data.json",
-        "models_path": "../models/dynobench/2payload.yaml",
-        "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
-        "out_path"   : "../../data/output/run_data4.json",
-    },
+    # # Add more dicts ↓ (copy-paste and change the paths)
+    # {
+    #     "traj_path"  : "../../data/run_data.json",
+    #     "models_path": "../models/dynobench/2payload.yaml",
+    #     "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
+    #     "out_path"   : "../../data/output/run_data2.json",
+    # },
+    # {
+    #     "traj_path"  : "../../data/run_data.json",
+    #     "models_path": "../models/dynobench/2payload.yaml",
+    #     "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
+    #     "out_path"   : "../../data/output/run_data3.json",
+    # },
+    #     {
+    #     "traj_path"  : "../../data/run_data.json",
+    #     "models_path": "../models/dynobench/2payload.yaml",
+    #     "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
+    #     "out_path"   : "../../data/output/run_data4.json",
+    # },
 ]
 
 # ---------------------------------------------------------------------

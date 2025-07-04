@@ -427,6 +427,12 @@ class CFMujoco():
         # Determine number of robots
         self.num_robots = self.model_params.get("num_robots", 1)
         self.controller_list = []
+        # record run index and initialize extra logs
+        self.log_payload_pos = []
+        self.log_payload_vel = []
+        self.log_quad_pos    = []
+        self.log_quad_vel    = []
+        self.log_quad_rot    = []
 
         if self.visualize:
             if not glfw.init():
@@ -694,6 +700,50 @@ class CFMujoco():
                     self.data.ctrl[0:4] = force
 
                 mj.mj_step(self.model, self.data)
+                # Log payload state
+                self.log_payload_pos.append(self.data.qpos[0:3].tolist())
+                self.log_payload_vel.append(self.data.qvel[0:3].tolist())
+                # Quad logs (handle both rigid‐link and tendon cases)
+                qp, qv, qr = [], [], []
+                if self.tendons:
+                    # when using tendons, controller.state holds the true world-frame UAV state
+                    for ctrl in self.controller_list:
+                        # position
+                        p = [
+                            ctrl.state.position.x,
+                            ctrl.state.position.y,
+                            ctrl.state.position.z,
+                        ]
+                        # linear velocity
+                        v = [
+                            ctrl.state.velocity.x,
+                            ctrl.state.velocity.y,
+                            ctrl.state.velocity.z,
+                        ]
+                        # quaternion (w, x, y, z)
+                        quat = [
+                            ctrl.state.attitudeQuaternion.w,
+                            ctrl.state.attitudeQuaternion.x,
+                            ctrl.state.attitudeQuaternion.y,
+                            ctrl.state.attitudeQuaternion.z,
+                        ]
+                        qp.append(p)
+                        qv.append(v)
+                        qr.append(quat)
+                else:
+                    # rigid‐link case: recompute via getUAVState
+                    for i in range(self.num_robots):
+                        p, v, quat, _ = self.controller_list[i].getUAVState(
+                            self.data.qpos, self.data.qvel, i
+                        )
+                        qp.append(p.tolist())
+                        qv.append(v.tolist())
+                        qr.append(list(quat))
+
+                self.log_quad_pos.append(qp)
+                self.log_quad_vel.append(qv)
+                self.log_quad_rot.append(qr)
+                # state/action logs
                 self.log_states.append(np.concatenate((self.data.qpos, self.data.qvel)).tolist())
                 self.log_actions.append(self.data.ctrl.tolist())
 
@@ -702,6 +752,12 @@ class CFMujoco():
                 log_traj_data["states"]  = self.log_states
                 log_traj_data["actions"] = self.log_actions
                 log_traj_data["time"]    = self.log_time
+                log_traj_data["payload_pos"] = self.log_payload_pos
+                log_traj_data["payload_vel"] = self.log_payload_vel
+                log_traj_data["quad_pos"] = self.log_quad_pos
+                log_traj_data["quad_vel"] = self.log_quad_vel
+                log_traj_data["quad_rot"] = self.log_quad_rot
+
                 save_json(self.out_path, log_traj_data)
             return
 
