@@ -77,7 +77,7 @@ def load_start_goal_states(filename: str):
     for i, (pos, flat, linvel, angvel) in enumerate(zip(quad_starts, rot_flats, linvels, angvels)):
         start_qpos.extend(pos)        
         R = np.array(flat).reshape((3, 3))
-        R = np.eye(3)
+        # R = np.eye(3)
         quat = rn.from_matrix(R)
         start_qpos.extend(quat) 
         start_qvel.extend(linvel)

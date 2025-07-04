@@ -19,13 +19,13 @@ class LeePayloadController():
         cff.controllerLeePayloadInit(self.ctrlLeeP)
         self.ctrlLeeP.mass = model_params["m"][0]
         self.ctrlLeeP.mp = model_params["m_payload"]
-        self.l =  model_params["l_payload"]
+        self.l = model_params["l_payload"]
         arm_length = 0.046  # m
         arm = 0.707106781 * arm_length
         t2t = 0.006  # thrust-to-torque ratio
         self.num_robots = model_params["num_robots"]
         self.team_ids = [i for i in range(self.num_robots)]
-        self.ctrlLeeP.en_qdidot = 0
+        self.ctrlLeeP.en_qdidot = 1
         self.ctrlLeeP.gen_hp = 1
         self.ctrlLeeP.en_accrb = 0
         if model_params["plan_type"] == "payload_target_pos":
@@ -302,7 +302,6 @@ class LeePayloadController():
         self.setpoint.acceleration.x = traj[6]  # m/s^2
         self.setpoint.acceleration.y = traj[7]  # m/s^2
         self.setpoint.acceleration.z = traj[8]  # m/s^2
-
         if actions is not None:
             self.updateMuplanned(traj, qpos, qvel, actions)
 
@@ -316,8 +315,8 @@ class LeePayloadController():
         self.ctrlLeeP.payload_vel_prev.z = self.state.payload_vel.z 
 
         eta = np.array([self.control.thrustSI, self.control.torque[0], self.control.torque[1], self.control.torque[2]]) 
-        mf = self.B0_inv @ eta
-        u = np.clip(mf, 0.0, 0.15)     # keep within ctrlrange
+        u = self.B0_inv @ eta
+        u = np.clip(u, 0.0, 0.15)     # keep within ctrlrange
         return u
 
 
@@ -535,11 +534,65 @@ class CFMujoco():
         else:
             print("Invalid trajectory file format")
         
+        if "num_robots" in self.model_params:
+            self.num_robots = self.model_params["num_robots"]
+        else:    
+            self.num_robots = 1
+        # Create Window
+        if not glfw.init():
+            raise RuntimeError("GLFW initialization failed!")
+
+        # ↓ ADD these; nothing gets deleted ↓
+        if not sim_args["visualize"]:          # or: if not self.visualize
+            glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+        self.window = glfw.create_window(2400, 1200, name, None, None)
+        if not self.window:
+            glfw.terminate()
+            raise RuntimeError("GLFW window creation failed!")
+
+        glfw.make_context_current(self.window)
+        glfw.swap_interval(1)
+        # glfw.show_window(self.window)
+
+        # Initialize visualization
+        mj.mjv_defaultCamera(self.cam)
+        mj.mjv_defaultOption(self.opt)
+        self.scene = mj.MjvScene(self.model, maxgeom=10000)
+        self.context = mj.MjrContext(self.model, mj.mjtFontScale.mjFONTSCALE_150.value)
+
+        # --- setting up a ghost model to show dynoplan/dynobench trajectory -------------------------------
+        self.ghost_model  = mj.MjModel.from_xml_path(xml_path)   # identical XML
+        self.ghost_data   = mj.MjData(self.ghost_model)
+
+        # 30 %-opaque green for every geom in the ghost
+        self.ghost_model.geom_rgba[:] = (1.0, 0.0, 0.0, 0.5) 
+
+        self.ghost_scene = mj.MjvScene(self.ghost_model, maxgeom=10000)
+        self.ghost_opt   = mj.MjvOption() 
+        self.ghost_opt.geomgroup[:] = 0     # hide everything
+        self.ghost_opt.geomgroup[1] = 1     # show only group-1 geoms (the CFs)
+        self.ghost_opt.geomgroup[2] = 1     # show only group-1 geoms (the CFs)
+        self.ghost_opt.geomgroup[3] = 1     # show only group-1 geoms (the CFs)
+        self.ghost_opt.geomgroup[5] = 1     # show only group-1 geoms (the CFs)
+
+        self.ghost_context = mj.MjrContext(self.ghost_model, mj.mjtFontScale.mjFONTSCALE_150.value)                      
+        # -------------------------------- default options ------------------------------------#
+
+        # Install input callbacks
+        glfw.set_key_callback(self.window, self.keyboard)
+        glfw.set_cursor_pos_callback(self.window, self.mouse_move)
+        glfw.set_mouse_button_callback(self.window, self.mouse_button)
+        glfw.set_scroll_callback(self.window, self.scroll)
+
+        # Mouse tracking
+        self.button_left = False
+        self.button_right = False
+        self.last_x, self.last_y = 0, 0
+        self.ref_markers_created = False     # <- NEW
         if self.payload:
             if self.plan_type == "payload_target_pos":
                 self.model_params["m_payload"] = self.traj_data["m_payload"]            
                 self.model_params["l_payload"] = [self.traj_data["l_payload"]]*self.num_robots
-                self.model_params["plan_type"] = self.plan_type
             for i in range(self.num_robots):
                 self.controller = LeePayloadController(self.model_params)
                 self.controller_list.append(self.controller)
@@ -763,7 +816,7 @@ class CFMujoco():
 
         # ---- INTERACTIVE MODE (unchanged rendering loop) ----
         while not glfw.window_should_close(self.window):
-            self.cam.lookat[:] = [self.data.qpos[0]-0.5, self.data.qpos[1], self.data.qpos[2] + 0.5]
+            self.cam.lookat[:] = [self.data.qpos[0]-0.5, self.data.qpos[1], self.data.qpos[2] + 2.5]
             self.cam.azimuth = 0
             self.cam.elevation = -0
             self.cam.distance = 2.5
