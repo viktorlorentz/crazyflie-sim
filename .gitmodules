@@ -1,6 +1,6 @@
 [submodule "deps/crazyflie-firmware"]
-	path = deps/crazyflie-firmware
-	url = git@github.com:IMRCLab/crazyflie-firmware.git
+    path = deps/crazyflie-firmware
+    url = https://github.com/IMRCLab/crazyflie-firmware.git
 [submodule "deps/dynobench"]
-	path = deps/dynobench
-	url = git@github.com:quimortiz/dynobench.git
+    path = deps/dynobench
+    url = https://github.com/quimortiz/dynobench.git
