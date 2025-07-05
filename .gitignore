@@ -1,2 +1,4 @@
 __pycache__
 data/output
+data/baseline_starts
+*MUJOCO_LOG.TXT

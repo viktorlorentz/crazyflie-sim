@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # ---------------------------------------------------------------------
 runs = [
     {
-        "traj_path"  : "../../data/run_data.json",
+        "traj_path"  : f"../../data/baseline_starts/run_{i}_data.json",
         "models_path": "../models/dynobench/2payload.yaml",
         "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
         "out_path"   : f"../../data/output/run_data{i}.json",
@@ -39,7 +39,7 @@ runs = [
     #     "mj"         : "../models/xml/2cfs_payload_tendons_30cm.xml",
     #     "out_path"   : "../../data/output/run_data4.json",
     # },
-for i in range(10)]
+for i in range(1000)]
 
 # ---------------------------------------------------------------------
 # 2)  One helper that builds *exactly* the CLI you gave
