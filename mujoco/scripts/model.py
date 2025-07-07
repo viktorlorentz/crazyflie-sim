@@ -518,7 +518,8 @@ class CFMujoco():
             self.plan_type = "payload_target_pos" #TODO: make this an arg 
             self.traj_data = load_start_goal_states(self.traj_path)
             self.model.opt.timestep = self.traj_data["dt"]
-            self.T = 5 # sec
+            
+            self.T = 10 # sec
             self.start_state = self.traj_data["start_state"]
             self.track_traj = self.traj_data["trajectory"]
             self.ts = np.arange(0, self.T, step=self.model.opt.timestep)
@@ -526,6 +527,37 @@ class CFMujoco():
                 self.traj = np.zeros((self.ts.shape[0],12)) #pos vel acc snap
                 payload_pos = self.traj_data["target_pos"]  
                 self.traj[:, 0:3] = payload_pos
+
+                print("Generating straight line trajectory for payload")
+                # def generate_straight_line_trajectory(start, end, max_vel=1.5):
+                #     """Generate a straight line trajectory between start and end points."""
+                #     return np.linspace(start, end, num_points)
+                print("Payload start position: ", self.traj_data["start_state"][0:3])
+                print("Payload end position: ", self.traj_data["target_pos"])
+                payload_start = self.traj_data["start_state"][0:3]
+                payload_end = self.traj_data["target_pos"]
+            
+
+                
+                generated_traj = generate_straight_line_trajectory(payload_start,
+                                                                    payload_end, 
+                                                                    max_vel=1.5, 
+                                                                    max_acc=1.0,
+                                                                    max_snap=3.0,
+                                                                    dt=self.model.opt.timestep)
+                print("Generated trajectory shape: ", generated_traj.shape)
+                print("Generated trajectory: ", generated_traj[:5])
+
+                print("last point of the generated trajectory: ", generated_traj[-1])
+
+                # update the trajectory with the generated trajectory for the indices of the trajectory length
+
+                self.traj[:generated_traj.shape[0], :] = generated_traj[:, 1:]  # skip the time column
+
+                # save the generated trajectory to yaml file
+                # with open("testtraj.yaml", 'w') as f:
+                #     yaml.dump({"trajectory": self.traj.tolist()}, f)
+
             else:
                 self.T = len(self.traj)
                 self.traj = np.zeros((self.T,12)) #pos vel acc snap
