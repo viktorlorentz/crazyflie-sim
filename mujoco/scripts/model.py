@@ -528,12 +528,10 @@ class CFMujoco():
                 payload_pos = self.traj_data["target_pos"]  
                 self.traj[:, 0:3] = payload_pos
 
-                print("Generating straight line trajectory for payload")
-                # def generate_straight_line_trajectory(start, end, max_vel=1.5):
-                #     """Generate a straight line trajectory between start and end points."""
-                #     return np.linspace(start, end, num_points)
-                print("Payload start position: ", self.traj_data["start_state"][0:3])
-                print("Payload end position: ", self.traj_data["target_pos"])
+                # print("Generating straight line trajectory for payload")
+          
+                # print("Payload start position: ", self.traj_data["start_state"][0:3])
+                # print("Payload end position: ", self.traj_data["target_pos"])
                 payload_start = self.traj_data["start_state"][0:3]
                 payload_end = self.traj_data["target_pos"]
             
@@ -545,10 +543,10 @@ class CFMujoco():
                                                                     max_acc=1.0,
                                                                     max_snap=3.0,
                                                                     dt=self.model.opt.timestep)
-                print("Generated trajectory shape: ", generated_traj.shape)
-                print("Generated trajectory: ", generated_traj[:5])
+                # print("Generated trajectory shape: ", generated_traj.shape)
+                # print("Generated trajectory: ", generated_traj[:5])
 
-                print("last point of the generated trajectory: ", generated_traj[-1])
+                # print("last point of the generated trajectory: ", generated_traj[-1])
 
                 # update the trajectory with the generated trajectory for the indices of the trajectory length
 
